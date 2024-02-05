@@ -1,37 +1,36 @@
-﻿using Il2CppAssets.Scripts.Models.Towers.Behaviors.Emissions;
-using Il2CppAssets.Scripts.Simulation.SMath;
-using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
-using Il2CppAssets.Scripts.Unity.UI_New.InGame;
+﻿using Il2CppAssets.Scripts.Models.Effects;
+using Il2CppAssets.Scripts.Models.Towers.Behaviors.Emissions;
 using Il2CppAssets.Scripts.Utils;
 
 namespace BloonsClicker.Upgrades;
 
 public class NuclearClicks : CursorUpgrade
 {
-    public override int Cost => 250_000;
-    protected override string Icon => Name;
-    public override float Rate => .01f;
-    public override string Description => "Dart damage and pierce doubled. Now releases 16 smaller darts on contact that also have double stats. Attack rate increased to every "+Rate+" seconds";
+    public override int Cost => 325_000;
+    protected override float ModifyRate(float rate) => rate * .5f;
+    public override string Description => "Pinnacle of Clicker technology. Dart damage and pierce significantly increased. Releases many smaller darts on contact.";
     public override int Tier => 10;
     protected override Main.LifeSpan LifeSpan => Main.LifeSpan.PermaClicks;
+    public override Path Path => Path.First;
+
+    /// <inheritdoc />
+    protected override bool PlacesOnTrack => true;
 
     protected override void ModifyProjectile(ProjectileModel projectile)
     {
-        projectile.pierce = 32;
-        projectile.GetDamageModel().damage = 24;
+        projectile.pierce *= 2;
+        projectile.GetDamageModel().damage *= 2;
 
-        var createEffectOnContactModel = Game.instance.model.GetTowerFromId(TowerType.BombShooter).GetWeapon().projectile.GetBehavior<CreateEffectOnContactModel>().Duplicate();
+        projectile.GetBehavior<CreateEffectOnContactModel>().effectModel = new EffectModel("EffectModel_",
+            new PrefabReference { guidRef = "b1324f2f4c3809643b7ef1d8c112442a" }, 1, 6);
+        
+        var createProjectileOnContact = projectile.GetBehaviors<CreateProjectileOnContactModel>()
+            .First(x => x.name.Contains("SmallDart"));
 
-        createEffectOnContactModel.effectModel.assetId = new PrefabReference()
-            { guidRef = "b1324f2f4c3809643b7ef1d8c112442a" };
-        
-        projectile.AddBehavior(createEffectOnContactModel);
-        
-        
-        projectile.GetBehavior<CreateProjectileOnContactModel>().emission.Cast<ArcEmissionModel>().count = 16;
-        
-        projectile.GetBehavior<CreateProjectileOnContactModel>().projectile.pierce *= 2;
-        projectile.GetBehavior<CreateProjectileOnContactModel>().projectile.GetDamageModel().damage *= 2;
-        
+        createProjectileOnContact.emission.Cast<ArcEmissionModel>().count = 16;
+
+        createProjectileOnContact.projectile.pierce *= 2;
+        createProjectileOnContact.projectile.GetDamageModel().damage *= 2;
+        createProjectileOnContact.passOnCollidedWith = false;
     }
 }

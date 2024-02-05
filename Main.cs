@@ -1,20 +1,34 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using BloonsClicker;
+using BloonsClicker.Upgrades.Path3;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Components;
 using BTD_Mod_Helper.Api.Helpers;
-using Il2CppAssets.Scripts.Models;
+using Il2CppAssets.Scripts;
+using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Models.Profile;
 using Il2CppAssets.Scripts.Simulation.Bloons;
-using Il2CppAssets.Scripts.Simulation.Objects;
+using Il2CppAssets.Scripts.Simulation.Input;
+using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Simulation.Track;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.RightMenu;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.TowerSelectionMenu;
+using Il2CppAssets.Scripts.Utils;
+using Il2CppInterop.Runtime;
+using Newtonsoft.Json;
 using UnityEngine;
 using Action = System.Action;
+using Main = BloonsClicker.Main;
+using Vector2 = Il2CppAssets.Scripts.Simulation.SMath.Vector2;
 
-[assembly: MelonInfo(typeof(BloonsClicker.Main), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
+// ReSharper disable InconsistentNaming
+
+[assembly: MelonInfo(typeof(Main), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
 
 namespace BloonsClicker;
@@ -22,126 +36,246 @@ namespace BloonsClicker;
 [HarmonyPatch]
 public class Main : BloonsTD6Mod
 {
-    public static CursorUpgrade? CurrentUpgrade;
-
-    private static float timeSinceLastSpawn;
+    public static IEnumerable<Path> Paths { get; } = Enum.GetValues(typeof(Path)).Cast<Path>();
     
-    private static float timeMouseHeld;
+    public static SortedSet<CursorUpgrade> CurrentUpgrades { get; } = new(Comparer<CursorUpgrade>.Create((a, b) => a.Tier == b.Tier ? a.Path.CompareTo(b.Path) : a.Tier.CompareTo(b.Tier)));
+    
+    public static readonly HashSet<int> ProjectileHitBloon = [];
 
-    private static void ClearUpgrades()
+    public static float TimeSinceLastAttack { get; set; } = float.MaxValue;
+
+    public static float TimeMouseHeld { get; private set; }
+
+    private static void ResetCursor()
     {
-        UpgradeMenu.purchasedDict.Clear();
-        CurrentUpgrade = null;
+        UpgradeMenu.PurchasedUpgrades = Paths.ToDictionary(path => path, _ => UpgradeMenu.UnPurchased);
+        CurrentUpgrades.Clear();
+        CursorPops = 0;
+        TimeSinceLastAttack = float.MaxValue;
+        TimeMouseHeld = 0;
     }
-    
+
     public override void OnMainMenu()
     {
-        CursorUpgrade.GenerateProjectiles();
-        ClearUpgrades();
+        ResetCursor();
     }
 
     public override void OnRestart()
     {
-        ClearUpgrades();
+        ResetCursor();
     }
-
-    internal static readonly Dictionary<Projectile, LifeSpan> ProjectileAge = new();
-
-    public record LifeSpan(float DestroyAfter)
+    /// <inheritdoc />
+    public override void OnMatchStart()
     {
-        public float Time;
-        public readonly float DestroyAfter = DestroyAfter;
-        
+        ModGameMenu.Open<UpgradeMenu>(); //todo: remove this
+    }
+    
+    internal static readonly Dictionary<Projectile, LifeSpan> ProjectileAge = new();
+    
+    internal static readonly HashSet<string> ProjectileNameCache = [];
+
+    public class LifeSpan(float destroyAfter) : IComparable<LifeSpan>
+    {
+        public float Time { get; set; }
+
+        public readonly float DestroyAfter = destroyAfter;
+
         public static LifeSpan NormalClick => new(.25f);
         public static LifeSpan StickyClicks => new(5);
         public static LifeSpan PermaClicks => new(30);
+        
+        public static bool operator >(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter > b.DestroyAfter;
+        }
+        public static bool operator <(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter < b.DestroyAfter;
+        }
+
+        /// <inheritdoc />
+        public int CompareTo(LifeSpan? other)
+        {
+            if (ReferenceEquals(this, other)) return 0;
+            if (ReferenceEquals(null, other)) return 1;
+            int destroyAfterComparison = DestroyAfter.CompareTo(other.DestroyAfter);
+            if (destroyAfterComparison != 0) return destroyAfterComparison;
+            return Time.CompareTo(other.Time);
+        }
+        
+        public static object operator >=(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter >= b.DestroyAfter;
+        }
+        
+        public static object operator <=(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter <= b.DestroyAfter;
+        }
+        
+        public static object operator ==(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter == b.DestroyAfter;
+        }
+        
+        public static object operator !=(LifeSpan a, LifeSpan b)
+        {
+            return a.DestroyAfter != b.DestroyAfter;
+        }
     }
 
-    public static float CursorPops;
-    
-    
+    [HarmonyPatch(typeof(TowerInventory), nameof(TowerInventory.GetTowerInventoryCount))]
+    [HarmonyPrefix]
+    static void TowerInventory_GetTowerInventoryCount(TowerInventory __instance, TowerModel def)
+    {
+        if (def.baseId == ModContent.GetInstance<ClickerTower>().Id && !__instance.towerCounts.TryGetValue(def.baseId, out _))
+        {
+            __instance.towerCounts[def.baseId] = 0;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnTowerLoaded(Tower tower, TowerSaveDataModel saveData)
+    {
+        if(tower.towerModel.baseId == ModContent.GetInstance<ClickerTower>().Id)
+        {
+            tower.towerModel.GetAttackModel().weapons[0].projectile = CursorUpgrade.GetProjectileModel();
+            tower.towerModel.GetAttackModel().weapons[0].rate = CursorUpgrade.GetRawRate();
+            CursorUpgrade.CursorTower = tower;
+        }
+    }
+
+    public static float CursorPops { get; private set; }
+
     public override void OnUpdate()
     {
-        timeSinceLastSpawn += Time.deltaTime;
-
         // ReSharper disable once Unity.NoNullPropagation
         if (InGame.instance?.GetSimulation() is null)
             return;
+        
+        var delta = Time.deltaTime;
+
+        if (InGame.instance.inputManager.cursorDown)
+            TimeMouseHeld += delta;
+        else
+            TimeMouseHeld = 0;
+        TimeSinceLastAttack += delta;
 
         foreach (var (projectile, lifeSpan) in ProjectileAge)
         {
-            lifeSpan.Time += Time.deltaTime;
+            lifeSpan.Time += delta;
             if (lifeSpan.Time > lifeSpan.DestroyAfter)
             {
-                projectile.Destroy();
+                projectile.Expire();
                 ProjectileAge.Remove(projectile);
             }
         }
 
-        if (CurrentUpgrade is null)
-        {
-            if (InGame.instance.GetCash() >= CostHelper.CostForDifficulty(CursorUpgrade.Cache.First().Value.Cost, InGame.instance.GetGameModel()))
-            {
-                // ReSharper disable once Unity.NoNullPropagation
-                _cursorUpgradeImage?.gameObject.SetActive(true);
-            }
-            return;
-        }
-
-
-        if (_cursorUpgradeImage is not null && CursorUpgrade.Cache.ContainsKey(CurrentUpgrade.Tier + 1) && InGame.instance.GetCash() >= CostHelper.CostForDifficulty(CursorUpgrade.Cache[CurrentUpgrade.Tier + 1].Cost, InGame.instance.GetGameModel()))
-        {
-            _cursorUpgradeImage.gameObject.SetActive(true);
-        }
-        else
-        {
-            // ReSharper disable once Unity.NoNullPropagation
-            _cursorUpgradeImage?.gameObject.SetActive(false);
-        }
-
-        if(InGame.instance.inputManager.cursorDown)
-            timeMouseHeld += Time.deltaTime;
-        else
-            timeMouseHeld = 0;
+        HandleCursorUpgradeRoller();
         
+        if(CurrentUpgrades.Count == 0)
+            return;
+        
+        if (CursorUpgrade.CursorTower is { IsDestroyed: false })
+        {
+            var position = new Vector2(InGame.instance.inputManager.cursorPositionWorld);
+            CursorUpgrade.CursorTower.PositionTower(position);
+        }
+        
+        foreach (var upgrade in CurrentUpgrades.OrderBy(x=>x.Tier))
+        {
+            upgrade.OnUpdate();
+        }
+
         if (!InGame.instance.inputManager.cursorInWorld ||
             !InGame.instance.inputManager.cursorDown)
             return;
         
-        if (timeSinceLastSpawn < (timeMouseHeld > .35f ? CurrentUpgrade.Rate * 1.3f : CurrentUpgrade.Rate))
-            return;
-
-        timeSinceLastSpawn = 0;
-
-        var model = CursorUpgrade.ProjectileModelCache[CurrentUpgrade.Tier];
-        var proj = InGame.instance.GetMainFactory().CreateEntityWithBehavior<Projectile, ProjectileModel>(model);
-
-        proj.Position.X = InGame.instance.inputManager.cursorPositionWorld.x;
-        proj.Position.Y = InGame.instance.inputManager.cursorPositionWorld.y;
-        proj.Position.Z = 20;
-
-        proj.pierce = model.pierce;
-
-        proj.direction.X = 0;
-        proj.direction.Y = 0;
-        proj.direction.Z = 0;
-
-        var projEmittedFrom = proj.emittedFrom;
-        projEmittedFrom.x = InGame.instance.inputManager.cursorPositionWorld.x;
-        projEmittedFrom.y = InGame.instance.inputManager.cursorPositionWorld.y;
-        projEmittedFrom.z = 20;
-        proj.emittedFrom = projEmittedFrom;
-
-        CurrentUpgrade.Create(proj);
+        CursorUpgrade.TryCreateProjectile();
     }
 
-    [HarmonyPatch(typeof(Bloon), nameof(Bloon.Damage))]
-    [HarmonyPrefix]
-    static void Bloon_Damage(float totalAmount, Projectile projectile)
+    private static void HandleCursorUpgradeRoller()
     {
-        if (projectile != null && (CurrentUpgrade?.Name == projectile.model.name || projectile.model.name == "ExplosiveClick" || projectile.model.name == "SmallDart"))
-            CursorPops += totalAmount;
+        if (_cursorUpgradeImage == null)
+        {
+            if (ShopMenu.instance == null)
+                return;
+            if (ShopMenu.instance.powersButton.transform.parent.FindChild("CursorUpgradePanel") != null)
+                return;
+            var panel =
+                ShopMenu.instance.powersButton.transform.parent.gameObject.AddModHelperPanel(new Info("CursorUpgradePanel"));
+            panel.transform.localPosition = Vector3.zero;
+            var cursorUpgradeButton = panel.AddButton(new Info("CursorUpgradeButton", 275),
+                ModContent.GetSpriteReference<Main>("CursorUpgrade").guidRef,
+                new Action(() => ModGameMenu.Open<UpgradeMenu>()));
+
+            var position = ShopMenu.instance.powersButton.transform.localPosition;
+            cursorUpgradeButton.transform.localPosition = position with { x = position.x - 300 };
+
+            _cursorUpgradeImage = cursorUpgradeButton.AddImage(new Info("CursorUpgradeImage", 350),
+                VanillaSprites.SmallSquareGlowOutline);
+
+            _cursorUpgradeImage.gameObject.AddComponent<Roller>();
+
+            _cursorUpgradeImage.gameObject.SetActive(false);
+        }
+        
+        var nextUpgrades = new HashSet<CursorUpgrade>();
+        foreach (var path in Paths)
+        {
+            var tier = UpgradeMenu.PurchasedUpgrades[path];
+            if (tier == UpgradeMenu.UnPurchased)
+            {
+                tier = path == Path.Clicker ? 0 : 1;
+            }
+            else
+            {
+                tier++;
+            }
+
+            if (CursorUpgrade.Cache[path].TryGetValue(tier, out var upgrade))
+            {
+                nextUpgrades.Add(upgrade);
+            }
+        }
+
+        _cursorUpgradeImage.gameObject.SetActive(nextUpgrades.Any(upgrade => InGame.instance.GetCash() >= CostHelper.CostForDifficulty(upgrade.Cost, InGame.instance.GetGameModel())));
     }
+
+    [HarmonyPatch(typeof(Projectile), nameof(Projectile.OnDestroy))]
+    [HarmonyPrefix]
+    static void Projectile_Destroy(Projectile __instance)
+    {
+        if (ProjectileNameCache.Contains(__instance.model.name))
+        {
+            foreach (var upgrade in CurrentUpgrades.OrderBy(x => x.Tier))
+            {
+                upgrade.OnDestroy(__instance);
+            }
+        }
+        ProjectileHitBloon.Remove(__instance.Id.Id);
+    }
+
+    [HarmonyPatch(typeof(Projectile), nameof(Projectile.CollideBloon))]
+    [HarmonyPrefix]
+    static void Projectile_CollideBloon(Projectile __instance)
+    {
+        ProjectileHitBloon.Add(__instance.Id.Id);
+    }
+    
+    [HarmonyPatch(typeof(Bloon), nameof(Bloon.RecieveDamage))]
+    [HarmonyPostfix]
+    static void Bloon_ApplyDamageToBloon(Bloon __instance, int amount, Projectile projectile)
+    {
+        if (projectile?.model?.name != null && ProjectileNameCache.Contains(projectile.model.name))
+        {
+            CursorPops += __instance.damageResult.damageUsed;
+        }
+    }
+    
+    [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.OnClickedResetDamage))]
+    [HarmonyPostfix]
+    static void BloonMenu_OnClickedResetDamage() => CursorPops = 0;
 
     private static ModHelperImage? _cursorUpgradeImage;
     
@@ -151,7 +285,8 @@ public class Main : BloonsTD6Mod
     {
         if (__instance.powersButton.transform.parent.FindChild("CursorUpgradePanel") != null)
             return;
-        var panel = __instance.powersButton.transform.parent.gameObject.AddModHelperPanel(new Info("CursorUpgradePanel"));
+        var panel =
+            __instance.powersButton.transform.parent.gameObject.AddModHelperPanel(new Info("CursorUpgradePanel"));
         panel.transform.localPosition = Vector3.zero;
         var cursorUpgradeButton = panel.AddButton(new Info("CursorUpgradeButton", 275),
             ModContent.GetSpriteReference<Main>("CursorUpgrade").guidRef,
@@ -159,12 +294,12 @@ public class Main : BloonsTD6Mod
 
         var position = __instance.powersButton.transform.localPosition;
         cursorUpgradeButton.transform.localPosition = position with { x = position.x - 300 };
-        
+
         _cursorUpgradeImage = cursorUpgradeButton.AddImage(new Info("CursorUpgradeImage", 350),
             VanillaSprites.SmallSquareGlowOutline);
-            
+
         _cursorUpgradeImage.gameObject.AddComponent<Roller>();
-        
+
         _cursorUpgradeImage.gameObject.SetActive(false);
     }
 
@@ -172,24 +307,58 @@ public class Main : BloonsTD6Mod
 
     [HarmonyPatch(typeof(Map), nameof(Map.GetSaveData))]
     [HarmonyPostfix]
-    static void OnMapSaved(Map __instance, MapSaveDataModel mapData)
+    static void OnMapSaved(MapSaveDataModel mapData)
     {
-        var json = "";
-        json = UpgradeMenu.purchasedDict.Aggregate(json,
-            (current, upgrade) => current + (upgrade.Key.Tier + ": " + upgrade.Value + "\n"));
+        var json = JsonConvert.SerializeObject(UpgradeMenu.PurchasedUpgrades);
         mapData.metaData["CursorUpgrade"] = json;
+
+        mapData.metaData["CursorPops"] = CursorPops.ToString(CultureInfo.InvariantCulture);
+        
+        foreach (var upgrade in CurrentUpgrades.OrderBy(x => x.Tier))
+        {
+            upgrade.OnMapSaved(mapData);
+        }
     }
 
     [HarmonyPatch(typeof(Map), nameof(Map.SetSaveData))]
     [HarmonyPostfix]
-    static void OnMapLoaded(Map __instance, MapSaveDataModel mapData)
-    {
+    static void OnMapLoaded(MapSaveDataModel mapData)
+    {            
+        CurrentUpgrades.Clear();
         if (mapData.metaData.TryGetValue("CursorUpgrade", out var data))
         {
-            UpgradeMenu.purchasedDict = data.Split("\n").Where(x => !string.IsNullOrEmpty(x))
-                .ToDictionary(line => CursorUpgrade.Cache[int.Parse(line.Split(": ")[0])],
-                    line => bool.Parse(line.Split(": ")[1]));
+            UpgradeMenu.PurchasedUpgrades = JsonConvert.DeserializeObject<Dictionary<Path, int>>(data) ?? new Dictionary<Path, int>();
+            
+            foreach (var (path, tier) in UpgradeMenu.PurchasedUpgrades)
+            {
+                for (var i = 0; i <= tier; i++)
+                {
+                    if (!CursorUpgrade.Cache[path].TryGetValue(i, out var upgrade))
+                        continue;
+                    CurrentUpgrades.Add(upgrade);
+                }
+            }
         }
+        else
+        {
+            UpgradeMenu.PurchasedUpgrades = Paths.ToDictionary(path => path, _ => UpgradeMenu.UnPurchased);
+        }
+
+        if (mapData.metaData.TryGetValue("CursorPops", out var cursorPops))
+        {
+            CursorPops = float.Parse(cursorPops, CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            CursorPops = 0;
+        }
+        
+        foreach (var upgrade in CurrentUpgrades.OrderBy(x => x.Tier))
+        {
+            upgrade.OnMapLoaded(mapData);
+        }
+
+        CursorUpgrade.UpdateTower();
     }
 
     #endregion

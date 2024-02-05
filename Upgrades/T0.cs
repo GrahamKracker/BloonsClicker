@@ -1,4 +1,5 @@
 ﻿using Il2CppAssets.Scripts.Models.GenericBehaviors;
+using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Utils;
 
 namespace BloonsClicker.Upgrades;
@@ -6,11 +7,15 @@ namespace BloonsClicker.Upgrades;
 public class Clicker : CursorUpgrade
 {
     public override int Cost => 500;
-    protected override string Icon => Name;
-    public override float Rate => 1.05f;
-    public override string Description => "Pops bloons on click, 1 damage, 2 pierce, attacks every "+Rate+" seconds. Holding down the mouse button will continually attack, but at a 30% slower rate.";
+
+    /// <inheritdoc />
+    protected override float ModifyRate(float rate) => 1f;
+
+    public override string Description => "Pops bloons on click. Holding down the mouse button will continuously attack, but at a 15% slower rate.";
     public override int Tier => 0;
-    protected override Main.LifeSpan LifeSpan => Main.LifeSpan.NormalClick;
+
+    /// <inheritdoc />
+    public override Path Path => Path.Clicker;
 
     protected override void ModifyProjectile(ProjectileModel projectile)
     {

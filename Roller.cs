@@ -6,18 +6,20 @@ namespace BloonsClicker;
 [RegisterTypeInIl2Cpp(false)]
 public class Roller : MonoBehaviour
 {
-    public Roller(IntPtr ptr) : base(ptr) { }
+    public Roller(IntPtr ptr) : base(ptr)
+    {
+    }
 
-    private float offset = .875f;
+    private const float Offset = .875f;
 
-    private float length = 1/4f;
+    private const float Length = 1 / 4f;
 
-    private float speed = 4f;
+    private const float Speed = 4f;
 
     public void Update()
     {
-        var scale = Mathf.Repeat(Time.unscaledTime/speed, length) + offset;
-        
+        var scale = Mathf.Repeat(Time.unscaledTime / Speed, Length) + Offset;
+
         transform.localScale = new Vector3(scale, scale, scale);
     }
 }
