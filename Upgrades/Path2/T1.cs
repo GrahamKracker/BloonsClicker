@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
+﻿using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
 
 namespace BloonsClicker.Upgrades.Path2;
 

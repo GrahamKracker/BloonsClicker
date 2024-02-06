@@ -2,7 +2,7 @@
 
 public class ExplosiveClicks : CursorUpgrade
 {
-    public override int Cost => 1200;
+    public override int Cost => 1600;
     /// <inheritdoc />
     protected override float ModifyRate(float rate) => rate * .85f;
     public override string Description => "Attack now deals more damage, and explodes on impact. Attack rate slightly increased.";

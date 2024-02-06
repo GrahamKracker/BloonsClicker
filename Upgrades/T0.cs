@@ -1,5 +1,4 @@
 ﻿using Il2CppAssets.Scripts.Models.GenericBehaviors;
-using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Utils;
 
 namespace BloonsClicker.Upgrades;

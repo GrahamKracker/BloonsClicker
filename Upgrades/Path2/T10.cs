@@ -1,6 +1,4 @@
-﻿using Il2CppAssets.Scripts.Models.Towers.Behaviors.Emissions;
-using Il2CppAssets.Scripts.Utils;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BloonsClicker.Upgrades.Path2;
 

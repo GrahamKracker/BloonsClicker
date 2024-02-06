@@ -1,15 +1,9 @@
 ﻿using System.Collections.Generic;
 using BTD_Mod_Helper.Api;
 using Il2CppAssets.Scripts;
-using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Models.Profile;
-using Il2CppAssets.Scripts.Models.Towers.Mods;
-using Il2CppAssets.Scripts.Models.Towers.Weapons;
 using Il2CppAssets.Scripts.Simulation.Towers;
-using Il2CppAssets.Scripts.Simulation.Towers.Behaviors.Attack;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
-using Il2CppAssets.Scripts.Simulation.Towers.Weapons;
-using Il2CppAssets.Scripts.Unity.Display;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Utils;
 using static BloonsClicker.Main;
@@ -219,7 +213,7 @@ public abstract class CursorUpgrade : NamedModContent
     public static void TryCreateProjectile(bool checkRate = true)
     {
         var rate = GetRate();
-        if(TimeMouseHeld > .35f && UpgradeMenu.PurchasedUpgrades[Path.Third] < 2)
+        if(TimeMouseHeld > .35f /*&& UpgradeMenu.PurchasedUpgrades[Path.Third] < 2*/)
             rate *= 1.15f;
         
         if (checkRate && TimeSinceLastAttack < rate)

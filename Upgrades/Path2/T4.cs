@@ -1,7 +1,4 @@
-﻿using System.Globalization;
-using Il2CppAssets.Scripts.Models.Towers.Mods;
-using HarmonyLib.Tools;
-using Il2CppAssets.Scripts.Simulation.Bloons;
+﻿using Il2CppAssets.Scripts.Simulation.Bloons;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 
 namespace BloonsClicker.Upgrades.Path2;
@@ -9,7 +6,7 @@ namespace BloonsClicker.Upgrades.Path2;
 public class IntenseIce : CursorUpgrade
 {
     public override int Cost => 1200;
-    public override string Description => "Attack deal extra damage to frozen bloons";
+    public override string Description => "Attacks deal extra damage to frozen bloons";
     public override int Tier => 4;
     public override Path Path => Path.Second;
     private const float DamageMultiplier = 2f;

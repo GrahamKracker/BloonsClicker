@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using BloonsClicker.Upgrades.Path2;
 using BTD_Mod_Helper.Api.Towers;
 using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Models.Towers.Behaviors;

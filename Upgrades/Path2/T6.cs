@@ -5,12 +5,8 @@ using UnityEngine;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Unity.Display;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
-using System;
 using BloonsClicker.Upgrades.Path2.SlowAreaClasses;
 using Il2CppAssets.Scripts;
-using Il2CppAssets.Scripts.Models;
-using Il2CppAssets.Scripts.Models.Bloons;
-using Il2CppAssets.Scripts.Simulation.Behaviors;
 using UnityEngine.AddressableAssets;
 
 namespace BloonsClicker.Upgrades.Path2;

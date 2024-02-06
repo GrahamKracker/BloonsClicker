@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Components;
 using BTD_Mod_Helper.Api.Helpers;
-using Il2CppAssets.Scripts;
-using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Unity.UI_New;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.Popups;
 using Il2CppAssets.Scripts.Unity.UI_New.Settings;
-using Il2CppAssets.Scripts.Utils;
 using Il2CppTMPro;
 using UnityEngine;
 using Object = Il2CppSystem.Object;
@@ -308,14 +305,14 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
                 var upgradePath = (int)(upgrade.Path - 1);
 
-                int x;
+                float x;
                 if (paths.Length % 2 == 0)
                 {
-                    x = (paths.Length / 2 - upgradePath) * TierSpacing;
+                    x = (upgradePath - (int)(paths.Length / 2f) + .5f) * TierSpacing;
                 }
                 else
                 {
-                    x = (upgradePath - paths.Length / 2) * TierSpacing;
+                    x = (upgradePath - (int)(paths.Length / 2f)) * TierSpacing;
                 }
 
                 var transform = button.ModHelperButton.transform;
