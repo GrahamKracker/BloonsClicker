@@ -13,3 +13,4 @@ global using Il2CppAssets.Scripts.Models.Towers.Projectiles;
 global using Il2CppAssets.Scripts.Models.Towers.Projectiles.Behaviors;
 global using Il2CppAssets.Scripts.Simulation.Towers.Projectiles.Behaviors;
 global using Il2CppAssets.Scripts.Unity;
+global using Il2CppNinjaKiwi.Common.ResourceUtils;
