@@ -381,18 +381,7 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
         if (upgrade.Path == Path.Paragon && PurchasedUpgrades[Path.Paragon] == UnPurchased)
         {
-            return true; // todo: remove
-            foreach (var path in Main.Paths)
-            {
-                if (path == Path.Paragon)
-                    continue;
-                if (PurchasedUpgrades[path] < CursorUpgrade.Cache[path].Values.Max(x => x.Tier))
-                {
-                    return false;
-                }
-            }
-            
-            return true;
+            return Main.Paths.Where(path => path != Path.Paragon).All(path => PurchasedUpgrades[path] >= CursorUpgrade.Cache[path].Values.Max(x => x.Tier));
         }
         
         return (PurchasedUpgrades[upgrade.Path] + 1 == upgrade.Tier && PurchasedUpgrades[Path.Clicker] != UnPurchased) || (PurchasedUpgrades[upgrade.Path] == UnPurchased && upgrade.Tier == 1);

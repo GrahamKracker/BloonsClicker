@@ -98,18 +98,14 @@ public class Puppeteer : CursorUpgrade
                 towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PickupSprite);
                 CursorTower.UpdateRootModel(towerModel);
 
-                AbilityMenu.instance.TowerChanged(CursorTower.GetTowerToSim());
+                AbilityMenu.instance.AbilitiesChanged();
             }
             else
             {
-                var inputManager = InGame.instance.inputManager;
-                inputManager.inCustomMode = true;
-                inputManager.CancelAllPlacementActions();
-                inputManager.HidePlacementBlockingUI();
-                inputManager.HideCoopPlacementArea();
                 CancelPurchaseButton cancelPlacementBtn = RightMenu.instance.cancelPlacementBtn;
                 cancelPlacementBtn.animator.SetInteger(cancelPlacementBtn.visibleStateLabel, 1);
-                inputManager.OnHelperMessageChanged.Invoke("Select a Tower", -1);
+                InGame.instance.inputManager.OnHelperMessageChanged.Invoke("Select a Tower", -1);
+                
                 cancelPlacementBtn.gameObject.GetComponent<Button>().onClick.AddListener(() => { TryCancel(); });
 
                 int num = 0;
@@ -185,14 +181,14 @@ public class Puppeteer : CursorUpgrade
             towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PutDownSprite);
             CursorTower.UpdateRootModel(towerModel);
 
-            AbilityMenu.instance.TowerChanged(CursorTower.GetTowerToSim());
+            AbilityMenu.instance.AbilitiesChanged();
 
             TryCancel();
         }
     }
 
     [HarmonyPatch(typeof(InputManager), nameof(InputManager.EnterPlacementMode))]
-    [HarmonyPostfix]
+    [HarmonyPrefix]
     static void InputManager_EnterPlacementMode()
     {
         TryCancel();
@@ -202,7 +198,6 @@ public class Puppeteer : CursorUpgrade
     {
         if (UpgradeMenu.PurchasedUpgrades[Path.Third] >= 8 && _selectingDoorGunner)
         {
-            InGame.instance.inputManager.ExitCustomMode();
             InGame.instance.inputManager.CancelAllPlacementActions();
             _selectingDoorGunner = false;
 
@@ -252,7 +247,7 @@ public class Puppeteer : CursorUpgrade
         
         towerModel.AddBehavior(abilityModel);
         
-        AbilityMenu.instance.TowerChanged(CursorTower.GetTowerToSim());
+        AbilityMenu.instance.AbilitiesChanged();
     }
     
 }
