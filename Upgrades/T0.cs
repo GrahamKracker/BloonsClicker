@@ -1,5 +1,6 @@
 ﻿using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Utils;
+using Il2CppNinjaKiwi.Common.ResourceUtils;
 
 namespace BloonsClicker.Upgrades;
 

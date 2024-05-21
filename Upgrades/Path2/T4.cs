@@ -15,7 +15,7 @@ public class IntenseIce : CursorUpgrade
     protected override void ModifyProjectile(ProjectileModel projectile)
     {
         ProjectileBehaviorModel projectileBehaviorModel = new CashModel("CashModel_IntenseIce_", 0,
-            0, 0, 0, false, false, false, false);
+            0, 0, 0, false, false, false, false, false);
         BehaviorName = projectileBehaviorModel.name;
         projectile.AddBehavior(projectileBehaviorModel);
     }

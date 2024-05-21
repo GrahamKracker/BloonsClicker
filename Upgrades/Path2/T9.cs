@@ -18,7 +18,7 @@ public class Frostbite : CursorUpgrade
     protected override void ModifyProjectile(ProjectileModel projectile)
     {
         var behavior = new CashModel("CashModel_Frostbite_", 0,
-            0, 0, 0, false, false, false, false);
+            0, 0, 0, false, false, false, false, false);
         BehaviorName = behavior.name;
         projectile.AddBehavior(behavior);
     }

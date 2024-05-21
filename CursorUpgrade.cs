@@ -6,6 +6,7 @@ using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Utils;
+using Il2CppNinjaKiwi.Common.ResourceUtils;
 using static BloonsClicker.Main;
 using Vector3 = Il2CppAssets.Scripts.Simulation.SMath.Vector3;
 
@@ -22,12 +23,6 @@ public abstract class CursorUpgrade : NamedModContent
     public override void Register()
     {
         Cache[Path].Add(Tier, this);
-    }
-
-    /// <inheritdoc />
-    public sealed override IEnumerable<ModContent> Load()
-    {
-        return base.Load();
     }
 
     public static void UpdateTower()

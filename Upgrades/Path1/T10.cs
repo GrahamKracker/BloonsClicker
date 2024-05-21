@@ -1,6 +1,7 @@
 ﻿using Il2CppAssets.Scripts.Models.Effects;
 using Il2CppAssets.Scripts.Models.Towers.Behaviors.Emissions;
 using Il2CppAssets.Scripts.Utils;
+using Il2CppNinjaKiwi.Common.ResourceUtils;
 
 namespace BloonsClicker.Upgrades;
 
