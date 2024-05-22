@@ -136,9 +136,12 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
                 {
                     if (!IsAvailable(SelectedUpgrade))
                     {
-                        PopupScreen.instance.ShowPopup(PopupScreen.Placement.menuCenter, "Not Available",
+                        /*PopupScreen.instance.ShowPopup(PopupScreen.Placement.menuCenter, "Not Available",
                             "This upgrade is not available for purchase. You either have already purchased this upgrade, or you need to purchase the previous upgrade(s) in this path.", null,
-                            "Ok", null, null, Popup.TransitionAnim.Scale);
+                            "Ok", null, null, Popup.TransitionAnim.Scale);*/
+                        
+                        
+                        // i got annoyed with it lmao
                         return;
                     }
                     if (InGame.instance.GetCash() < cost)

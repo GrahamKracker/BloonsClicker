@@ -19,8 +19,7 @@ using Vector2 = Il2CppAssets.Scripts.Simulation.SMath.Vector2;
 
 namespace BloonsClicker.Upgrades.Path3;
 
-//todo: fix errors in log
-public class Puppeteer : CursorUpgrade
+public class Broken_Puppeteer : CursorUpgrade
 {
     public override int Cost => 5500;
 
@@ -37,7 +36,7 @@ public class Puppeteer : CursorUpgrade
     
     private const float UpdateRate = 0.02f;
     
-    private static float LastUpdate { get; set; }
+    private float LastUpdate { get; set; }
     
     /// <inheritdoc />
     public override void OnUpdate()
@@ -85,7 +84,7 @@ public class Puppeteer : CursorUpgrade
     }
 
     [HarmonyPatch(typeof(Ability), nameof(Ability.Activate))]
-    [HarmonyPrefix]
+    [HarmonyPostfix]
     private static void Ability_Activate(Ability __instance)
     {
         if (__instance.abilityModel.displayName == "Puppeteer")
@@ -94,10 +93,7 @@ public class Puppeteer : CursorUpgrade
             {
                 AttachedTower.isSelectionBlocked = false;
                 AttachedTower = null;
-                var towerModel = CursorTower.towerModel.Duplicate();
-                towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PickupSprite);
-                CursorTower.UpdateRootModel(towerModel);
-
+                __instance.abilityModel.icon = GetSpriteReferenceOrDefault<Main>(PickupSprite);
                 AbilityMenu.instance.AbilitiesChanged();
             }
             else
@@ -178,7 +174,7 @@ public class Puppeteer : CursorUpgrade
 
 
             var towerModel = CursorTower.towerModel.Duplicate();
-            towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PutDownSprite);
+            CursorTower.towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PutDownSprite);
             CursorTower.UpdateRootModel(towerModel);
 
             AbilityMenu.instance.AbilitiesChanged();
@@ -226,28 +222,6 @@ public class Puppeteer : CursorUpgrade
     {
         if (!__result)
             TryCancel();
-    }
-
-    /// <inheritdoc />
-    public override void ModifyCursorTower(TowerModel towerModel)
-    {
-        var abilityModel = Game.instance.model.GetTower(TowerType.BoomerangMonkey, 0,4).GetDescendant<AbilityModel>().Duplicate();
-
-        abilityModel.RemoveBehaviors();
-        abilityModel.icon = GetSpriteReferenceOrDefault(PickupSprite);
-        abilityModel.cooldown = 3;
-        abilityModel.Cooldown = 3;
-        abilityModel.cooldownFrames = 180;
-        abilityModel.addedViaUpgrade = null;
-        abilityModel.name = "AbilityModel_Puppeteer_";
-        abilityModel.displayName = "Puppeteer";
-        abilityModel.description = "Allows you to pick up a tower and attach it to the cursor";
-        abilityModel.restrictAbilityAfterMaxRoundTimer = false;
-        abilityModel.canActivateBetweenRounds = true;
-        
-        towerModel.AddBehavior(abilityModel);
-        
-        AbilityMenu.instance.AbilitiesChanged();
     }
     
 }

@@ -1,5 +1,8 @@
 ﻿using System;
 using Il2CppAssets.Scripts.Models.Towers.Behaviors.Emissions;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame;
+using Il2CppAssets.Scripts.Unity.UI_New.Main;
+using Il2CppAssets.Scripts.Unity.UI_New.Pause;
 using UnityEngine;
 using Cursor = Il2CppAssets.Cursor;
 
@@ -43,7 +46,7 @@ public class BlessedCursor : CursorUpgrade
             throw new InvalidOperationException("Failed to load cursor textures");
     }
 
-    private static Cursor.CursorSprites _defaultCursor { get; set; } = null!;
+    private static Cursor.CursorSprites? DefaultCursor { get; set; }
 
     /// <inheritdoc />
     public override void OnUpdate()
@@ -55,10 +58,10 @@ public class BlessedCursor : CursorUpgrade
         
         if (Cursor.instance.activeConfig.textureDown.name != _cursorDown.name)
         {
-            _defaultCursor = Cursor.instance.activeConfig;
+            DefaultCursor = Cursor.instance.activeConfig;
             Cursor.instance.activeConfig = new Cursor.CursorSprites
             {
-                hotspot = _defaultCursor.hotspot,
+                hotspot = DefaultCursor.hotspot,
                 textureDown = _cursorDown,
                 textureUp = _cursorUp,
             };
@@ -68,16 +71,43 @@ public class BlessedCursor : CursorUpgrade
     /// <inheritdoc />
     public override void OnSell()
     {
-        Cursor.instance.activeConfig = _defaultCursor;
+        Cursor.instance.activeConfig = DefaultCursor;
     }
 
+    [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.Open))]
+    [HarmonyPostfix]
+    private static void MainMenu_Open()
+    {
+        if (DefaultCursor != null)
+        {
+            Cursor.instance.activeConfig = DefaultCursor;
+            Cursor.instance.Update();
+        }
+    }
+
+    [HarmonyPatch(typeof(InGame), nameof(InGame.Restart))]
+    [HarmonyPostfix]
+    private static void InGame_Restart()
+    {
+        if (DefaultCursor != null)
+        {
+            Cursor.instance.activeConfig = DefaultCursor;
+            Cursor.instance.Update();
+        }
+    }
 
     //todo: make the thing lightning, water, ice, the whole shebang
 
     protected override void ModifyProjectile(ProjectileModel projectile)
     {
+        projectile.GetDamageModel().damage *= 2;
         var proj = Game.instance.model.GetTower(TowerType.Druid, 4)
                     .GetDescendants<ProjectileModel>().ToList().Find(x=>x.id == "SpawningProjectile")!.Duplicate();
+
+        foreach (var damageModel in proj.GetDescendants<DamageModel>().ToList())
+        {
+            damageModel.damage *= 50;
+        }
         
         var createProjectileOnExpireModel = new CreateProjectileOnExhaustFractionModel("CreateProjectileOnExhaustFractionModel_", proj,
             new ArcEmissionModel("ArcEmissionModel_", 6, 0, 360, null, false, 
