@@ -175,14 +175,20 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
                 var sortedUpgrades = GetContent<CursorUpgrade>().Where(x => x.Path == SelectedUpgrade.Path)
                     .OrderBy(x => x.Tier).ToArray();
+                var paragonUpgrade = GetContent<CursorUpgrade>().First(x => x.Path == Path.Paragon);
                 var index = Array.IndexOf(sortedUpgrades, SelectedUpgrade) + 1;
 
                 if (index >= sortedUpgrades.Length)
                 {
-                    UpdateSelectionPanel(sortedUpgrades[^1]);
+                    UpdateSelectionPanel(IsAvailable(paragonUpgrade) ? paragonUpgrade : sortedUpgrades[^1]);
                 }
                 else
+                {
                     UpdateSelectionPanel(sortedUpgrades[index]);
+                }
+                
+                
+                
                 
                 CursorUpgrade.UpdateTower();
             }));

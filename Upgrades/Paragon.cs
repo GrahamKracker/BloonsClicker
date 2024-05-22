@@ -96,23 +96,24 @@ public class BlessedCursor : CursorUpgrade
         }
     }
 
-    //todo: make the thing lightning, water, ice, the whole shebang
-
     protected override void ModifyProjectile(ProjectileModel projectile)
     {
-        projectile.GetDamageModel().damage *= 2;
-        var proj = Game.instance.model.GetTower(TowerType.Druid, 4)
+        var druidProjectile = Game.instance.model.GetTower(TowerType.Druid, 4)
                     .GetDescendants<ProjectileModel>().ToList().Find(x=>x.id == "SpawningProjectile")!.Duplicate();
-
-        foreach (var damageModel in proj.GetDescendants<DamageModel>().ToList())
-        {
-            damageModel.damage *= 50;
-        }
+        druidProjectile.RemoveBehavior<CreateProjectileOnIntervalModel>();
+        druidProjectile.AddBehavior(new DamageModel("DamageModel_0", 300, 0, true,
+            false, true, BloonProperties.None, 
+            BloonProperties.None, false));
         
-        var createProjectileOnExpireModel = new CreateProjectileOnExhaustFractionModel("CreateProjectileOnExhaustFractionModel_", proj,
-            new ArcEmissionModel("ArcEmissionModel_", 6, 0, 360, null, false, 
-                false), .2f, -1, true, false, false);
-        projectile.AddBehavior(createProjectileOnExpireModel);
+        var createProjectileOnContactModel = projectile.GetBehaviors<CreateProjectileOnContactModel>().First(x => x.name.Contains("SmallDart"));
+
+        createProjectileOnContactModel.projectile = druidProjectile;
+        createProjectileOnContactModel.emission.Cast<ArcEmissionModel>().count = 6;
+        
+        foreach (var damageModel in projectile.GetDescendants<DamageModel>().ToList())
+        {
+            damageModel.damage *= 300;
+        }
     }
     
 }
