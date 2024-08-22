@@ -6,7 +6,7 @@ public class PermaClicks : CursorUpgrade
 {
     public override int Cost => 60000;
     protected override float ModifyRate(float rate) => rate * .75f;
-    public override string Description => "Darts on the ground are now almost permanent.";
+    public override string Description => "Darts on the ground are now much stronger.";
     public override int Tier => 9;
     protected override Main.LifeSpan LifeSpan => Main.LifeSpan.PermaClicks;
 

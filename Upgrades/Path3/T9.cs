@@ -7,7 +7,7 @@ namespace BloonsClicker.Upgrades.Path3;
 public class CorrosiveClicks : CursorUpgrade
 {
     public override int Cost => 90000;
-    public override string Description => "Bloons hit by the cursor corrode and take more damage indefinitely.";
+    public override string Description => "Bloons hit by the cursor are corroded and take more damage indefinitely.";
     public override int Tier => 9;
     private static string _mutatorName { get; set; } = string.Empty;
     private const float DamageMultiplier = 4;

@@ -1,12 +1,18 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using BTD_Mod_Helper.Api;
 using Il2CppAssets.Scripts;
+using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Models.Profile;
 using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
+using Il2CppAssets.Scripts.Unity.Display;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Utils;
 using Il2CppNinjaKiwi.Common.ResourceUtils;
+using Il2CppSystem;
+using Il2CppSystem.Threading.Tasks;
+using UnityEngine;
 using static BloonsClicker.Main;
 using Vector3 = Il2CppAssets.Scripts.Simulation.SMath.Vector3;
 
@@ -150,7 +156,7 @@ public abstract class CursorUpgrade : NamedModContent
         newProjectile.name = key;
         newProjectile.id = key;
         ProjectileModelCache[key] = newProjectile;
-        ProjectileNameCache.Add(newProjectile.name);
+        ProjectileNameCache.Add(key);
         return newProjectile;
     }
 
@@ -208,7 +214,7 @@ public abstract class CursorUpgrade : NamedModContent
     public static void TryCreateProjectile(bool checkRate = true)
     {
         var rate = GetRate();
-        if(TimeMouseHeld > .35f /*&& UpgradeMenu.PurchasedUpgrades[Path.Third] < 2*/)
+        if(TimeMouseHeld > .35f && UpgradeMenu.PurchasedUpgrades[Path.Third] < 2)
             rate *= 1.15f;
         
         if (checkRate && TimeSinceLastAttack < rate)
@@ -229,6 +235,21 @@ public abstract class CursorUpgrade : NamedModContent
 
         TimeSinceLastAttack = 0;
         RateModifier = 1;
+        
+        Game.instance.GetDisplayFactory().CreateAsync(new PrefabReference{guidRef = "a26c13a357838ee409d09f86a54a4fca"}, DisplayCategory.Effect, new System.Action<UnityDisplayNode>(
+            node =>
+            {
+                const float radiusDivisor = 10;
+                node.transform.position = new UnityEngine.Vector3(InGame.instance.inputManager.cursorPositionWorld.x, 20,
+                    -InGame.instance.inputManager.cursorPositionWorld.y - 10);
+                node.transform.localScale = new UnityEngine.Vector3(proj.radius / radiusDivisor, proj.radius / radiusDivisor, proj.radius / radiusDivisor);
+                node.transform.rotation = Quaternion.Euler(60, 0, 138);
+                System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    node.Destroy();
+                });
+            }));
     }
 
     private static readonly Dictionary<string, float> RateCache = new();

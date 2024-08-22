@@ -22,7 +22,7 @@ public class SlowArea : CursorUpgrade
     private const float SlowAreaCooldown = .4f;
     private float SlowRadius => UpgradeMenu.PurchasedUpgrades[Path] < 10 ? 22.5f : Blizzard.SlowRadius;
     
-    private const float PhysicsRate = .05f;
+    private const float PhysicsRate = .2f;
 
     private float _lastAttackTime = Time.time;
 
@@ -84,7 +84,7 @@ public class SlowArea : CursorUpgrade
         {
             var position = area.Position;
             var collisionState =
-                InGame.instance.UnityToSimulation.Simulation.collisionChecker.GetInRange<Bloon>(position.x, -position.z,
+                InGame.instance.bridge.Simulation.collisionChecker.GetInRange<Bloon>(position.x, -position.z,
                     area.Radius);
             if (collisionState == null)
                 continue;

@@ -1,9 +1,15 @@
 ﻿using System.Collections.Generic;
 using BTD_Mod_Helper.Api;
+using BTD_Mod_Helper.Api.Components;
+using BTD_Mod_Helper.Api.Display;
 using Il2CppAssets.Scripts.Models;
 using Il2CppAssets.Scripts.Models.Towers.Behaviors.Abilities;
+using Il2CppAssets.Scripts.Models.Towers.Behaviors.Attack;
+using Il2CppAssets.Scripts.Models.Towers.Weapons;
 using Il2CppAssets.Scripts.Simulation.Towers;
+using Il2CppAssets.Scripts.Simulation.Towers.Behaviors;
 using Il2CppAssets.Scripts.Simulation.Towers.Behaviors.Abilities;
+using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Unity.Bridge;
 using Il2CppAssets.Scripts.Unity.Display;
 using Il2CppAssets.Scripts.Unity.Menu;
@@ -19,209 +25,71 @@ using Vector2 = Il2CppAssets.Scripts.Simulation.SMath.Vector2;
 
 namespace BloonsClicker.Upgrades.Path3;
 
-public class Broken_Puppeteer : CursorUpgrade
+public class BuffingClicks : CursorUpgrade
 {
-    public override int Cost => 5500;
-
-    public override string Description => "Adds the ability to pick up a tower and attach it to the cursor.";
+    public override int Cost => 15_000;
+    public override string Description => $"Towers that are clicked on gain a strong, temporary buff. This buff can be applied to an unlimited amount of towers at once.";
     public override int Tier => 8;
     public override Path Path => Path.Third;
 
-    private const string PickupSprite = "PuppetterPickup";
-    private const string PutDownSprite = "PuppetterPutDown";
-
-    private static Tower? AttachedTower { get; set; }
-
-    private static bool _selectingDoorGunner;
+    private const int BuffTime = 5;
     
-    private const float UpdateRate = 0.02f;
-    
-    private float LastUpdate { get; set; }
-    
-    /// <inheritdoc />
-    public override void OnUpdate()
-    {
-        if (Time.time - LastUpdate < UpdateRate)
-            return;
-        LastUpdate = Time.time;
-        if (AttachedTower is { IsDestroyed: false })
-        {
-            var position = new Vector2(InGame.instance.inputManager.cursorPositionWorld);
-            AttachedTower.PositionTower(position);
-        }
-    }
-
-    [HarmonyPatch(typeof(Ability), nameof(Ability.CanUseAbility))]
-    [HarmonyPrefix]
-    private static bool Ability_CanUseAbility(Ability __instance, ref bool __result)
-    {
-        if (__instance.abilityModel.displayName == "Puppeteer")
-        {
-            if(AttachedTower is { IsDestroyed: false })
-            {
-                __result = true;
-                return false;
-            }
-            if (InGame.instance.bridge.GetAllTowers().Any(x => !CursorTower!.Equals(x.tower) && !x.tower.isSelectionBlocked && !x.Def.isSubTower && !x.Def.isPowerTower && !x.Def.ignoreTowerForSelection))
-            {
-                __result = true;
-                return false;
-            }
-            __result = false;
-            return false;
-        }
-        return true;
-    }
+    private const float BuffMultiplier = 2f;
 
     /// <inheritdoc />
-    public override void OnSell()
+    public override void OnCreate(Projectile projectile)
     {
-        if (AttachedTower is { IsDestroyed: false })
+        InGame.instance.GetTowerManager().GetTowersInRange(projectile.Position, projectile.radius).ForEach(tower =>
         {
-            AttachedTower.isSelectionBlocked = false;
-            AttachedTower = null;
-        }
+            if(tower == null || tower.IsDestroyed || tower.towerModel.baseId == GetTowerModel<ClickerTower>().baseId)
+                return;
+            var buffIndicator = Game.instance.model.buffIndicatorModels.First(x => x.name.Contains(GetInstance<
+                BuffingClicksBuffIcon>().Id));
+            tower.AddMutator(new DamageSupport.MutatorTower(0, true, "BuffingClicks", buffIndicator), BuffTime * 60);
+        });
     }
 
-    [HarmonyPatch(typeof(Ability), nameof(Ability.Activate))]
-    [HarmonyPostfix]
-    private static void Ability_Activate(Ability __instance)
-    {
-        if (__instance.abilityModel.displayName == "Puppeteer")
-        {
-            if (AttachedTower is { IsDestroyed: false })
-            {
-                AttachedTower.isSelectionBlocked = false;
-                AttachedTower = null;
-                __instance.abilityModel.icon = GetSpriteReferenceOrDefault<Main>(PickupSprite);
-                AbilityMenu.instance.AbilitiesChanged();
-            }
-            else
-            {
-                CancelPurchaseButton cancelPlacementBtn = RightMenu.instance.cancelPlacementBtn;
-                cancelPlacementBtn.animator.SetInteger(cancelPlacementBtn.visibleStateLabel, 1);
-                InGame.instance.inputManager.OnHelperMessageChanged.Invoke("Select a Tower", -1);
-                
-                cancelPlacementBtn.gameObject.GetComponent<Button>().onClick.AddListener(() => { TryCancel(); });
-
-                int num = 0;
-                foreach (var tower in InGame.instance.bridge.GetAllTowers().ToList().Where(x =>
-                             !CursorTower!.Equals(x.tower) && !x.tower.isSelectionBlocked && !x.Def.isSubTower &&
-                             !x.Def.isPowerTower && !x.Def.ignoreTowerForSelection))
-                {
-                    CreateSelectionImage(tower);
-                    num++;
-                }
-
-                _selectingDoorGunner = true;
-
-                if (num == 0)
-                {
-                    TryCancel();
-                }
-            }
-        }
-    }
-
-    private static readonly List<(Tower, GameObject)> SelectedTowerMarkers = [];
-
-    private static void CreateSelectionImage(TowerToSimulation towerToSimulation)
-    {
-        var rot = UnityEngine.Quaternion.Euler(45, 0, 0);
-        var holder = new GameObject("SelectedTowerMarkerHolder")
-        {
-            transform =
-            {
-                parent = Game.instance.GetDisplayFactory().DisplayRoot,
-            }
-        };
-
-        var selectedTowerMarkerGo = new GameObject("SelectedTowerMarker")
-        {
-            transform =
-            {
-                parent = holder.transform,
-                position = new UnityEngine.Vector3(towerToSimulation.tower.Position.X, 100,
-                    -towerToSimulation.tower.Position.Y - 55f),
-                rotation = rot,
-            }
-        };
-
-        var offsetTowardsCamera = holder.AddComponent<OffsetTowardsCamera>();
-        offsetTowardsCamera.offset = 0.2f;
-        offsetTowardsCamera.offsetRotation = new UnityEngine.Vector3(0, 0.2f, 0);
-
-        var sr = selectedTowerMarkerGo.AddComponent<SpriteRenderer>();
-        sr.color = new UnityEngine.Color(0, 0.9843f, 0.2627f, 1);
-        sr.sprite = ModContent.GetSprite<Main>("SelectedTowerMarker");
-        sr.sortingLayerName = "Bloons";
-        sr.sortingOrder = 32767;
-        SelectedTowerMarkers.Add((towerToSimulation.tower, selectedTowerMarkerGo));
-    }
-
-
-    [HarmonyPatch(typeof(TowerSelectionMenu), nameof(TowerSelectionMenu.SelectTower))]
-    [HarmonyPostfix]
-    static void Tower_Selected(TowerSelectionMenu __instance)
-    {
-        var tower = __instance.selectedTower.tower;
-
-        if (_selectingDoorGunner &&
-            SelectedTowerMarkers.Exists(x => x.Item1.Equals(tower) && !CursorTower!.Equals(tower)))
-        {
-            AttachedTower = tower;
-            AttachedTower.isSelectionBlocked = true;
-
-
-            var towerModel = CursorTower.towerModel.Duplicate();
-            CursorTower.towerModel.GetBehavior<AbilityModel>().icon = GetSpriteReferenceOrDefault<Main>(PutDownSprite);
-            CursorTower.UpdateRootModel(towerModel);
-
-            AbilityMenu.instance.AbilitiesChanged();
-
-            TryCancel();
-        }
-    }
-
-    [HarmonyPatch(typeof(InputManager), nameof(InputManager.EnterPlacementMode))]
+    [HarmonyPatch(typeof(DamageSupport.MutatorTower), nameof(DamageSupport.MutatorTower.Mutate))]
     [HarmonyPrefix]
-    static void InputManager_EnterPlacementMode()
+    private static bool DamageSupport_MutatorTower_Mutate(DamageSupport.MutatorTower __instance, Model model,
+        ref bool __result)
     {
-        TryCancel();
-    }
+        if (__instance.id != "BuffingClicks")
+            return true;
 
-    private static bool TryCancel()
-    {
-        if (UpgradeMenu.PurchasedUpgrades[Path.Third] >= 8 && _selectingDoorGunner)
+        foreach (var damageModel in model.GetDescendants<DamageModel>().ToList())
         {
-            InGame.instance.inputManager.CancelAllPlacementActions();
-            _selectingDoorGunner = false;
-
-            foreach (var gameObject in SelectedTowerMarkers.Select(selectedTowerMarker => selectedTowerMarker.Item2))
-            {
-                if (gameObject != null)
-                    gameObject.Destroy();
-            }
-
-            return false;
+            damageModel.damage *= BuffMultiplier;
         }
 
-        return true;
-    }
+        foreach (var weaponModel in model.GetDescendants<WeaponModel>().ToList())
+        {
+            weaponModel.Rate *= BuffMultiplier;
+        }
 
-    [HarmonyPatch(typeof(MenuManager), nameof(MenuManager.ProcessEscape))]
-    [HarmonyPrefix]
-    static bool MenuManager_ProcessEscape()
-    {
-        return TryCancel();
-    }
+        foreach (var weaponModel in model.GetDescendants<AttackModel>().ToList())
+        {
+            weaponModel.range *= BuffMultiplier;
+        }
 
-    [HarmonyPatch(typeof(InputManager), nameof(InputManager.IsCursorInWorld))]
-    [HarmonyPostfix]
-    static void InputManager_IsCursorInWorld(bool __result)
-    {
-        if (!__result)
-            TryCancel();
+        if (model.TryCast<TowerModel>() != null)
+        {
+            model.Cast<TowerModel>().range *= BuffMultiplier;
+        }
+
+        foreach (var projectileModel in model.GetDescendants<ProjectileModel>().ToList())
+        {
+            projectileModel.pierce *= BuffMultiplier;
+            projectileModel.maxPierce *= BuffMultiplier;
+        }
+
+        __result = true;
+        return false;
     }
+}
+
+public class BuffingClicksBuffIcon : ModBuffIcon
+{
+    public override string Icon => GetType().Name;
     
 }

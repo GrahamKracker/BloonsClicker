@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using BloonsClicker;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Components;
 using BTD_Mod_Helper.Api.Helpers;
+using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Models.Profile;
 using Il2CppAssets.Scripts.Simulation.Bloons;
 using Il2CppAssets.Scripts.Simulation.Input;
 using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Simulation.Track;
+using Il2CppAssets.Scripts.Unity.Display;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.RightMenu;
@@ -75,8 +78,8 @@ public class Main : BloonsTD6Mod
         public readonly float DestroyAfter = destroyAfter;
 
         public static LifeSpan NormalClick => new(.25f);
-        public static LifeSpan StickyClicks => new(5);
-        public static LifeSpan PermaClicks => new(30);
+        public static LifeSpan StickyClicks => new(2);
+        public static LifeSpan PermaClicks => new(15);
         
         public static bool operator >(LifeSpan a, LifeSpan b)
         {
@@ -261,7 +264,7 @@ public class Main : BloonsTD6Mod
     [HarmonyPostfix]
     static void Bloon_ApplyDamageToBloon(Bloon __instance, int amount, Projectile projectile)
     {
-        if (projectile?.model?.name != null && ProjectileNameCache.Contains(projectile.model.name))
+        if (projectile is { model: not null } && ProjectileNameCache.Contains(projectile.model.name))
         {
             CursorPops += __instance.damageResult.damageUsed;
         }
@@ -296,7 +299,7 @@ public class Main : BloonsTD6Mod
 
         _cursorUpgradeImage.gameObject.SetActive(false);
     }
-
+    
     #region Saving
 
     [HarmonyPatch(typeof(Map), nameof(Map.GetSaveData))]

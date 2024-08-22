@@ -16,10 +16,7 @@ public static class Extensions
 
         if (!projectile.collisionPasses.Contains(collisionPass))
         {
-            projectile.collisionPasses = projectile.collisionPasses.Concat(new []
-            {
-                collisionPass
-            }).ToArray();
+            projectile.collisionPasses = projectile.collisionPasses.Concat([collisionPass]).ToArray();
         }
     }
     

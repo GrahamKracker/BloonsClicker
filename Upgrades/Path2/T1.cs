@@ -1,4 +1,9 @@
-﻿using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
+﻿using Il2CppAssets.Scripts.Data.Audio;
+using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppNinjaKiwi.Common;
+using Il2CppSystem.Collections.Generic;
 
 namespace BloonsClicker.Upgrades.Path2;
 
@@ -15,7 +20,8 @@ public class FreezingClicks : CursorUpgrade
         var freezeModel =
             new FreezeModel("FreezeModel_BloonsClickerPath2_", 0, 1f, 
                 "FreezeModel_BloonsClickerPath2_:Freeze", 2, "Ice", true, 
-                new GrowBlockModel("GrowBlockModel_FreezeGrowBlock"), null, 0, false, false);
+                new GrowBlockModel("GrowBlockModel_FreezeGrowBlock"), null, 
+                0, false, false, false);
         projectile.AddBehavior(freezeModel);
     }
 

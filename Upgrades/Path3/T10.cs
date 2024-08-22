@@ -10,26 +10,42 @@ using UnityEngine;
 
 namespace BloonsClicker.Upgrades.Path3;
 
-public class BuffingClicks : CursorUpgrade
+public class BuffingAura : CursorUpgrade
 {
     public override int Cost => 120_000;
-    public override string Description => $"Towers that are clicked on get temporarily buffed.";
+    public override string Description => $"Towers nearby the cursor get heavily buffed.";
     public override int Tier => 10;
     public override Path Path => Path.Third;
 
-    private const int BuffTime = 6;
+    private const int BuffTime = 3;
+    
+    private const float BuffMultiplier = 5f;
 
-    private const string BuffIcon = "BuffingClicksBuffIcon";
+    private const float PhysicsRate = 0.5f;
+
+    private float _lastCheckTime = Time.time;
     /// <inheritdoc />
-    public override void OnCreate(Projectile projectile)
+    public override void OnUpdate()
     {
-        InGame.instance.GetTowerManager().GetTowersInRange(projectile.Position, projectile.radius).ForEach(tower =>
+        if (Time.time - _lastCheckTime < PhysicsRate)
         {
-            if(tower.IsDestroyed || tower.towerModel.baseId == GetTowerModel<ClickerTower>().baseId)
+            return;
+        }
+
+        _lastCheckTime = Time.time;
+        
+        var position = InGame.instance.GetUnityWorldFromCursor();
+        
+        if(CursorTower == null)
+            return;
+        
+        InGame.instance.GetTowerManager().GetTowersInRange(position.ToSMathVector(), CursorTower.towerModel.GetDescendant<ProjectileModel>().radius).ForEach(tower =>
+        {
+            if (tower == null || tower.IsDestroyed || tower.towerModel.baseId == GetTowerModel<ClickerTower>().baseId)
                 return;
             var buffIndicator = Game.instance.model.buffIndicatorModels.First(x => x.name.Contains(GetInstance<
-                BuffingClicksBuffIndicator>().Id));
-            tower.AddMutator(new DamageSupport.MutatorTower(0, true, BuffIcon, buffIndicator), BuffTime * 60);
+                BuffingAuraBuffIcon>().Id));
+            tower.AddMutator(new DamageSupport.MutatorTower(0, true, "BuffingAura", buffIndicator), BuffTime * 60);
         });
     }
 
@@ -38,33 +54,33 @@ public class BuffingClicks : CursorUpgrade
     private static bool DamageSupport_MutatorTower_Mutate(DamageSupport.MutatorTower __instance, Model model,
         ref bool __result)
     {
-        if (__instance.id != "BuffingClicksTODO")
+        if (__instance.id != "BuffingAura")
             return true;
 
         foreach (var damageModel in model.GetDescendants<DamageModel>().ToList())
         {
-            damageModel.damage *= 1.5f;
+            damageModel.damage *= BuffMultiplier;
         }
 
         foreach (var weaponModel in model.GetDescendants<WeaponModel>().ToList())
         {
-            weaponModel.Rate *= 1.5f;
+            weaponModel.Rate *= BuffMultiplier;
         }
 
         foreach (var weaponModel in model.GetDescendants<AttackModel>().ToList())
         {
-            weaponModel.range *= 1.5f;
+            weaponModel.range *= BuffMultiplier;
         }
 
         if (model.TryCast<TowerModel>() != null)
         {
-            model.Cast<TowerModel>().range *= 1.5f;
+            model.Cast<TowerModel>().range *= BuffMultiplier;
         }
 
         foreach (var projectileModel in model.GetDescendants<ProjectileModel>().ToList())
         {
-            projectileModel.pierce *= 1.5f;
-            projectileModel.maxPierce *= 1.5f;
+            projectileModel.pierce *= BuffMultiplier;
+            projectileModel.maxPierce *= BuffMultiplier;
         }
 
         __result = true;
@@ -72,8 +88,8 @@ public class BuffingClicks : CursorUpgrade
     }
 }
 
-public class BuffingClicksBuffIndicator : ModBuffIcon
+public class BuffingAuraBuffIcon : ModBuffIcon
 {
     public override string Icon => GetType().Name;
-    
+
 }

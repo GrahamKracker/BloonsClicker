@@ -16,7 +16,7 @@ public class BlessedCursor : CursorUpgrade
     public override int Tier => -1;
     protected override Main.LifeSpan LifeSpan => Main.LifeSpan.PermaClicks;
     public override Path Path => Path.Paragon;
-    
+
     private Texture2D? _cursorDown;
     private Texture2D? _cursorUp;
 
@@ -29,7 +29,7 @@ public class BlessedCursor : CursorUpgrade
         };
         var cursorDownbytes = this.mod.MelonAssembly.Assembly.GetEmbeddedResource("BlessedCursorDown.png");
         cursorDownTemp.LoadImage(cursorDownbytes.GetByteArray());
-        
+
         _cursorDown = cursorDownTemp;
 
         Texture2D? cursorUpTemp = new Texture2D(2, 2, TextureFormat.ARGB32, false)
@@ -39,7 +39,7 @@ public class BlessedCursor : CursorUpgrade
         };
         var cursorUpbytes = this.mod.MelonAssembly.Assembly.GetEmbeddedResource("BlessedCursorUp.png");
         cursorUpTemp.LoadImage(cursorUpbytes.GetByteArray());
-        
+
         _cursorUp = cursorUpTemp;
 
         if (_cursorDown == null || _cursorUp == null)
@@ -55,7 +55,7 @@ public class BlessedCursor : CursorUpgrade
         {
             CreateTextures();
         }
-        
+
         if (Cursor.instance.activeConfig.textureDown.name != _cursorDown.name)
         {
             DefaultCursor = Cursor.instance.activeConfig;
@@ -101,19 +101,26 @@ public class BlessedCursor : CursorUpgrade
         var druidProjectile = Game.instance.model.GetTower(TowerType.Druid, 4)
                     .GetDescendants<ProjectileModel>().ToList().Find(x=>x.id == "SpawningProjectile")!.Duplicate();
         druidProjectile.RemoveBehavior<CreateProjectileOnIntervalModel>();
-        druidProjectile.AddBehavior(new DamageModel("DamageModel_0", 300, 0, true,
-            false, true, BloonProperties.None, 
+        druidProjectile.RemoveBehavior<FreezeModel>();
+        druidProjectile.RemoveBehavior<DamageModel>();
+        druidProjectile.SetHitCamo(true);
+        druidProjectile.AddBehavior(new DamageModel("DamageModel_", 600, 0, true,
+            true, true, BloonProperties.None,
             BloonProperties.None, false));
-        
+        druidProjectile.radius = 15f;
+        druidProjectile.GetBehavior<TravelStraitModel>().Speed = 36f;
+        druidProjectile.name = "ClickerParagonSpawningProjectile";
+        Main.ProjectileNameCache.Add(druidProjectile.name);
+
         var createProjectileOnContactModel = projectile.GetBehaviors<CreateProjectileOnContactModel>().First(x => x.name.Contains("SmallDart"));
 
         createProjectileOnContactModel.projectile = druidProjectile;
-        createProjectileOnContactModel.emission.Cast<ArcEmissionModel>().count = 6;
-        
+        createProjectileOnContactModel.emission.Cast<ArcEmissionModel>().count = 3;
+
         foreach (var damageModel in projectile.GetDescendants<DamageModel>().ToList())
         {
-            damageModel.damage *= 300;
+            damageModel.damage *= 500;
         }
     }
-    
+
 }

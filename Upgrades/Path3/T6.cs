@@ -11,7 +11,7 @@ public class AutomagicClicks : CursorUpgrade
     public override int Tier => 6;
     public override Path Path => Path.Third;
 
-    private const float PhysicsRate = 0.02f;
+    private const float PhysicsRate = 0.1f;
     
     private float _lastCheckTime = Time.time;
     
@@ -28,7 +28,7 @@ public class AutomagicClicks : CursorUpgrade
         var projectile = GetProjectileModel();
         var position = InGame.instance.GetUnityWorldFromCursor();
 
-        var collisionState = InGame.instance.UnityToSimulation.Simulation.collisionChecker.GetInRange<Bloon>(position.x, -position.z, projectile.radius);
+        var collisionState = InGame.instance.bridge.Simulation.collisionChecker.GetInRange<Bloon>(position.x, -position.z, projectile.radius);
 
         while (collisionState.MoveNext())
         {
