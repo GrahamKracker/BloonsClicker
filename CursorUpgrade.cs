@@ -199,9 +199,9 @@ public abstract class CursorUpgrade : NamedModContent
         projectile.Position.Y = InGame.instance.inputManager.cursorPositionWorld.y;
         projectile.Position.Z = 20;
 
-        projectile.direction.X = 0;
-        projectile.direction.Y = 0;
-        projectile.direction.Z = 0;
+        projectile.Direction.X = 0;
+        projectile.Direction.Y = 0;
+        projectile.Direction.Z = 0;
 
         projectile.emittedFrom = new Vector3(InGame.instance.InputManager.cursorPositionWorld.x,
             InGame.instance.InputManager.cursorPositionWorld.y, 20);
@@ -242,7 +242,7 @@ public abstract class CursorUpgrade : NamedModContent
                 const float radiusDivisor = 10;
                 node.transform.position = new UnityEngine.Vector3(InGame.instance.inputManager.cursorPositionWorld.x, 20,
                     -InGame.instance.inputManager.cursorPositionWorld.y - 10);
-                node.transform.localScale = new UnityEngine.Vector3(proj.radius / radiusDivisor, proj.radius / radiusDivisor, proj.radius / radiusDivisor);
+                node.transform.localScale = new UnityEngine.Vector3(proj.Radius / radiusDivisor, proj.Radius / radiusDivisor, proj.Radius / radiusDivisor);
                 node.transform.rotation = Quaternion.Euler(60, 0, 138);
                 System.Threading.Tasks.Task.Run(async () =>
                 {
