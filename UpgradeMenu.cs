@@ -80,7 +80,7 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
         CreateUpgrades();
 
         CommonForegroundScreen.instance.Hide();
-        CommonForegroundScreen.instance.Show(true, "Clicker Upgrades", false, false, false, false, false, false);
+        CommonForegroundScreen.instance.Show(true, "Clicker Upgrades", false, false, false, false, false, false, false);
 
         foreach (var animator in basePanel.GetComponentsInChildren<Animator>())
             animator.updateMode = AnimatorUpdateMode.UnscaledTime;
