@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Components;
@@ -13,7 +14,6 @@ using Object = Il2CppSystem.Object;
 
 namespace BloonsClicker;
 
-//todo: setting toggle to make towers not clickable (for when you want to play )
 public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 {
     private static ModHelperScrollPanel MainPanel { get; set; } = null!;
@@ -77,10 +77,10 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
         CreateInfoPanel();
 
-        CreateUpgrades();
+        MelonCoroutines.Start(CreateUpgrades());
 
         CommonForegroundScreen.instance.Hide();
-        CommonForegroundScreen.instance.Show(true, "Clicker Upgrades", false, false, false, false, false, false);
+        CommonForegroundScreen.instance.Show(true, "Clicker Upgrades", false, false, false, false, false, false, false);
 
         foreach (var animator in basePanel.GetComponentsInChildren<Animator>())
             animator.updateMode = AnimatorUpdateMode.UnscaledTime;
@@ -290,11 +290,15 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
         upgradeButton.ModHelperButton.Image.SetSprite(VanillaSprites.UpgradeContainerParagon);
     }
 
-    private static void CreateUpgrades()
+    private static IEnumerator CreateUpgrades()
     {
         var maxTier = GetContent<CursorUpgrade>().Max(x => x.Tier);
 
+        UpgradeButtons.Clear();
         CreateClickerButton();
+
+        SelectedUpgrade = GetContent<CursorUpgrade>().First(x => x.Path == Path.Clicker);
+        UpdateSelectionPanel(SelectedUpgrade);
 
         for (int tier = 1; tier <= maxTier; tier++)
         {
@@ -304,6 +308,8 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
             tierPanel.Background.enabled = false;
 
             MainPanel.AddScrollContent(tierPanel);
+
+            yield return null;
 
             foreach (var upgrade in GetContent<CursorUpgrade>().Where(x => x.Tier == tier).OrderBy(x => x.Path))
             {
@@ -327,13 +333,13 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
                 var transform = button.ModHelperButton.transform;
                 var position = transform.localPosition;
                 transform.localPosition = position with { x = x };
+                yield return null;
             }
         }
 
         CreateParagonButton();
 
-        SelectedUpgrade = GetContent<CursorUpgrade>().First(x => x.Path == Path.Clicker);
-        UpdateSelectionPanel(SelectedUpgrade);
+
     }
 
     public static void UpdateSelectionPanel(CursorUpgrade upgrade)

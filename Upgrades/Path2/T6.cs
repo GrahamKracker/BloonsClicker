@@ -90,7 +90,7 @@ public class SlowArea : CursorUpgrade
                 continue;
             while (collisionState.MoveNext())
             {
-                var bloon = collisionState.Current;
+                var bloon = collisionState._Current_k__BackingField;
                 if (bloon == null)
                     continue;
                 bloonsInASlowArea.Add(bloon.Id);

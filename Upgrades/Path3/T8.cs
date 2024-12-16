@@ -39,7 +39,7 @@ public class BuffingClicks : CursorUpgrade
     /// <inheritdoc />
     public override void OnCreate(Projectile projectile)
     {
-        InGame.instance.GetTowerManager().GetTowersInRange(projectile.Position, projectile.radius).ForEach(tower =>
+        InGame.instance.GetTowerManager().GetTowersInRange(projectile.Position, projectile.Radius).ForEach(tower =>
         {
             if(tower == null || tower.IsDestroyed || tower.towerModel.baseId == GetTowerModel<ClickerTower>().baseId)
                 return;

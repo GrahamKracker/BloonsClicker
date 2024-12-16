@@ -1,5 +1,6 @@
 ﻿using System;
 using BTD_Mod_Helper.Api.Components;
+using Il2CppInterop.Runtime.Attributes;
 using UnityEngine;
 
 namespace BloonsClicker;
@@ -10,7 +11,8 @@ public class CursorUpgradeButton : MonoBehaviour
     public CursorUpgradeButton(IntPtr ptr) : base(ptr)
     {
     }
-    
+
+    [HideFromIl2Cpp]
     public CursorUpgrade Upgrade { get; set; } = null!;
     
     public ModHelperButton ModHelperButton { get; set; } = null!;
