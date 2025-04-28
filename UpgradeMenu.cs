@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Components;
 using BTD_Mod_Helper.Api.Helpers;
+using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Unity.UI_New;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.Popups;
 using Il2CppAssets.Scripts.Unity.UI_New.Settings;
 using Il2CppTMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using Object = Il2CppSystem.Object;
 
 namespace BloonsClicker;
@@ -120,7 +122,8 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
         popsPanel.AddImage(new Info("PopsIcon", -150, 0, 50, 50), VanillaSprites.PopIcon);
 
-        InfoPanel.PopsText = popsPanel.AddText(new Info("PopsText", 125, 0, 450, 50), $"{Main.CursorPops:n0}");
+        InfoPanel.PopsText = popsPanel.AddText(new Info("PopsText", 125, 0, 450, 50), $"{CursorUpgrade.CursorTower?.damageDealt:n0 ?? Main.SavedCursorPops:n0}");
+
         InfoPanel.PopsText.Text.alignment = TextAlignmentOptions.MidlineLeft;
 
         InfoPanel.BuyButton = buyPanel.AddButton(new Info("BuyButton")
@@ -186,10 +189,7 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
                 {
                     UpdateSelectionPanel(sortedUpgrades[index]);
                 }
-                
-                
-                
-                
+
                 CursorUpgrade.UpdateTower();
             }));
 
@@ -246,6 +246,8 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
                                 button.UpdateLockState();
                             }
 
+                            Main.SavedCursorPops = CursorUpgrade.CursorTower?.damageDealt ?? Main.SavedCursorPops;
+
                             if (CursorUpgrade.CursorTower != null && !CursorUpgrade.CursorTower.IsDestroyed)
                                 CursorUpgrade.CursorTower.SellTower();
                             
@@ -268,7 +270,13 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
         clickerPanel.Background.enabled = false;
         MainPanel.AddScrollContent(clickerPanel);
 
-        CursorUpgradeButton.Create(GetContent<CursorUpgrade>().First(x => x.Path == Path.Clicker), clickerPanel);
+        CursorUpgradeButton.Create(GetContent<CursorUpgrade>().First(x => x.Path == Path.Clicker), clickerPanel).ModHelperButton.Button.onClick.AddListener(new Action(() =>
+        {
+            TaskScheduler.ScheduleTask(() =>
+            {
+                    CursorUpgrade.CursorTower!.damageDealt = Main.SavedCursorPops;
+            }, () => CursorUpgrade.CursorTower is {IsDestroyed:false});
+        }));
     }
 
     private static void CreateParagonButton()

@@ -47,7 +47,7 @@ public class Main : BloonsTD6Mod
     {
         UpgradeMenu.PurchasedUpgrades = Paths.ToDictionary(path => path, _ => UpgradeMenu.UnPurchased);
         CurrentUpgrades.Clear();
-        CursorPops = 0;
+        SavedCursorPops = 0;
         TimeSinceLastAttack = float.MaxValue;
         TimeMouseHeld = 0;
     }
@@ -61,11 +61,14 @@ public class Main : BloonsTD6Mod
     {
         ResetCursor();
     }
+
+#if DEBUG
     /// <inheritdoc />
     public override void OnMatchStart()
     {
         ModGameMenu.Open<UpgradeMenu>(); //todo: remove this
     }
+#endif
     
     internal static readonly Dictionary<Projectile, LifeSpan> ProjectileAge = new();
     
@@ -142,7 +145,7 @@ public class Main : BloonsTD6Mod
         }
     }
 
-    public static float CursorPops { get; private set; }
+    public static long SavedCursorPops { get; set; }
 
     public override void OnUpdate()
     {
@@ -260,19 +263,9 @@ public class Main : BloonsTD6Mod
         ProjectileHitBloon.Add(__instance.Id.Id);
     }
     
-    [HarmonyPatch(typeof(Bloon), nameof(Bloon.RecieveDamage))]
-    [HarmonyPostfix]
-    static void Bloon_ApplyDamageToBloon(Bloon __instance, int amount, Projectile projectile)
-    {
-        if (projectile is { model: not null } && ProjectileNameCache.Contains(projectile.model.name))
-        {
-            CursorPops += __instance.damageResult.damageUsed;
-        }
-    }
-    
     [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.OnClickedResetDamage))]
     [HarmonyPostfix]
-    static void BloonMenu_OnClickedResetDamage() => CursorPops = 0;
+    static void BloonMenu_OnClickedResetDamage() => SavedCursorPops = 0;
 
     private static ModHelperImage? _cursorUpgradeImage;
     
@@ -309,7 +302,7 @@ public class Main : BloonsTD6Mod
         var json = JsonConvert.SerializeObject(UpgradeMenu.PurchasedUpgrades);
         mapData.metaData["CursorUpgrade"] = json;
 
-        mapData.metaData["CursorPops"] = CursorPops.ToString(CultureInfo.InvariantCulture);
+        mapData.metaData["CursorPops"] = SavedCursorPops.ToString(CultureInfo.InvariantCulture);
         
         foreach (var upgrade in CurrentUpgrades.OrderBy(x => x.Tier))
         {
@@ -341,14 +334,7 @@ public class Main : BloonsTD6Mod
             UpgradeMenu.PurchasedUpgrades = Paths.ToDictionary(path => path, _ => UpgradeMenu.UnPurchased);
         }
 
-        if (mapData.metaData.TryGetValue("CursorPops", out var cursorPops))
-        {
-            CursorPops = float.Parse(cursorPops, CultureInfo.InvariantCulture);
-        }
-        else
-        {
-            CursorPops = 0;
-        }
+        SavedCursorPops = mapData.metaData.TryGetValue("CursorPops", out var cursorPops) ? long.Parse(cursorPops, CultureInfo.InvariantCulture) : 0;
         
         foreach (var upgrade in CurrentUpgrades.OrderBy(x => x.Tier))
         {

@@ -55,6 +55,8 @@ public abstract class CursorUpgrade : NamedModContent
                 InGame.Bridge.MyPlayerNumber,
                 ObjectId.FromData(1), ObjectId.FromData(4294967295));
         }
+
+        CursorTower.damageDealt = SavedCursorPops;
     }
 
     public static ProjectileModel GetProjectileModel()
@@ -205,6 +207,7 @@ public abstract class CursorUpgrade : NamedModContent
 
         projectile.emittedFrom = new Vector3(InGame.instance.InputManager.cursorPositionWorld.x,
             InGame.instance.InputManager.cursorPositionWorld.y, 20);
+        projectile.EmittedBy = CursorTower;
         
         var maxLife = CurrentUpgrades.Max(x => x.LifeSpan) ?? LifeSpan.NormalClick;
 
