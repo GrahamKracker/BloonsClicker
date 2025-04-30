@@ -122,7 +122,7 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
 
         popsPanel.AddImage(new Info("PopsIcon", -150, 0, 50, 50), VanillaSprites.PopIcon);
 
-        InfoPanel.PopsText = popsPanel.AddText(new Info("PopsText", 125, 0, 450, 50), $"{CursorUpgrade.CursorTower?.damageDealt:n0 ?? Main.SavedCursorPops:n0}");
+        InfoPanel.PopsText = popsPanel.AddText(new Info("PopsText", 125, 0, 450, 50), $"{(CursorUpgrade.CursorTower?.damageDealt ?? Main.SavedCursorPops):N0}");
 
         InfoPanel.PopsText.Text.alignment = TextAlignmentOptions.MidlineLeft;
 
@@ -274,7 +274,7 @@ public class UpgradeMenu : ModGameMenu<HotkeysScreen>
         {
             TaskScheduler.ScheduleTask(() =>
             {
-                    CursorUpgrade.CursorTower!.damageDealt = Main.SavedCursorPops;
+                CursorUpgrade.CursorTower!.damageDealt = Main.SavedCursorPops;
             }, () => CursorUpgrade.CursorTower is {IsDestroyed:false});
         }));
     }
